@@ -1,0 +1,169 @@
+coursera firebase tutorial
+
+1) go to: 
+	firebase.google.com
+2) after naming project and app, do NOT check "Also set up Firebase Hosting..."
+
+inside test js / html:
+
+-- note that the following is provided in your Add Firebase SDK window while you're 
+registering your app:
+
+1) make sure you have your config stuff inside your js file (test_pad.js):
+
+  var firebaseConfig = {
+    apiKey: "AIzaSyB4UaD0LlFMpEFHiNDgnC7Qj_67CYHmcQU",
+    authDomain: "brendan-world-peace.firebaseapp.com",
+    projectId: "brendan-world-peace",
+**** -- need databaseURL here ****
+    storageBucket: "brendan-world-peace.appspot.com",
+    messagingSenderId: "539669509645",
+    appId: "1:539669509645:web:8c2a0d92778abf02ec8744",
+    measurementId: "G-YGFN60FFS0"
+  };
+
+2) make sure firebase is initialized:
+firebase.initializeApp(firebaseConfig);
+firebase.analytics();
+
+3) make sure there is a ROOT REFERENCE to your database tree
+
+// the following will create a reference to our entry point 'issues' in our db tree
+const rootRef = firebase.database().ref("issues/");
+
+4) then we'll push some issues to our rootRef:
+
+rootRef.push ({
+    description: "Logo does not show up on screen 3",
+    resolecd: "yes",
+    severity: "minor"
+});
+
+rootRef.push ({
+    description: "Screen flashes on save",
+    resolved: "no",
+    severity: "moderate"
+});
+
+Then move onto the app's console
+1) set up your DB
+ 	- we're using realtime database here
+	- start your database in test mode
+
+2) copy and paste the path of your html file into your browser, just for testing
+
+*** make sure your databaseURL is contained in the firebaseConfig const you defined,
+For some reason it wasn't created yet. So after you create your database,
+go to project settings / general, and get the databaseURL and include it in that object
+
+now if you copy and paste the html file into your browser, the JS will run in the background,
+and when you go back to your database in firebase, you'll see that you've pushed two issues
+to the "issues" root
+
+
+Now in live code:
+1) once again, paste your config variable into your live / worldpeace.js code
+
+2) now note what's going on in the following code.
+rootRef.on(params... is how we retrieve data from our database
+the params argument is how we determine WHEN items will be retrieved from our db
+.on is a listener
+"value" means that whenever any changes happen in our datatree, our page will reload
+snapshot is a data snapshot provided by firebase
+.forEach means that snapshot should be an array, I believe
+so for each child in that array, we'll be doing some stuff with it
+
+rootRef.on("value",
+
+  (snapshot) => {
+    const listTableBody = document.getElementById("list-table-body");
+
+    // clear all the table rows first
+    listTableBody.textContent = "";
+
+    snapshot.forEach((child) => {
+      issue = child.val();
+      console.log(issue);
+      // var row = document.createElement("tr");
+      // row.innerHTML = "<td>" + issue.severity + "</td><td>" + encodeHtml("[REPLACE THIS]") + "</td><td>" + "[REPLACE THIS]" + "</td>";
+      // listTableBody.append(row);
+    });
+
+  },
+
+  (error) => {
+    console.log("Error: " + error.code);
+  }
+
+);
+
+
+adding records through the web page:
+1) we modify addNewIssue in worldpeaceissues.js, task 5, to make it so that when we access the dropdowns in our webpage, they're added to our database. 
+But note that if we don't add the rootRef.push({... code, then there's no way for our added items to be populated in our webpage
+
+function addNewIssue() {
+  const severity = document.getElementById("severity-dropdown").value; // you click the dropdown to set severity
+  const description = document.getElementById("description-textfield").value; // you fill in the description to set the description
+  const resolved = document.getElementById("resolved-dropdown").value; // you click the resolved dropdown to set the resolved value
+  const user = document.getElementById("user-textfield").value; // i added this one
+
+  if (description.length == 0) {
+    alert("Description cannot be blank!");
+    return;
+  }
+// we added the following lines to add these items to our database when we access the addNewIssue function through webpage
+    rootRef.push ({
+        description: description,
+        resolved: resolved,
+        severity: severity,
+        user: user
+    });
+
+  document.getElementById("description-textfield").value="";
+  document.getElementById("user-textfield").value="";
+}
+
+Then we update rootRef.on({ ...
+to insert a dropdown so that we can actively update on status:
+rootRef.on("value",
+
+  (snapshot) => {
+    const listTableBody = document.getElementById("list-table-body"); // list-table-body is the main table in html
+
+    // clear all the table rows first
+    listTableBody.textContent = "";
+
+    snapshot.forEach((child) => { // a child will be one of our tree items (a key:value set of things)
+      issue = child.val();
+    //   console.log(issue);
+      var row = document.createElement("tr");
+      row.innerHTML = "<td>" + issue.severity + "</td><td>" + issue.user + "</td><td>" + encodeHtml(issue.description) + "</td><td>" 
+       + "<select onchange='updateIssue(\"" + child.key + "\", this.value)'>" +
+        "<option value='no'" + (issue.resolved=="no" ? " selected" : "") + ">no</option>" +
+        "<option value='yes'" + (issue.resolved=="yes" ? " selected" : "") + ">yes</option>" +
+      "</select>"
+
+      + "</td>";
+      
+      + "</td>";
+      listTableBody.append(row);
+    });
+
+  },
+
+but then we have to actually update our updateIssue function so that our database gets updated as well:
+
+function updateIssue(issueKey, newResolvedValue) {
+  var recordRef = firebase.database().ref("issues/" + issueKey);
+  recordRef.update ({
+    "resolved": newResolvedValue
+  });
+}
+
+
+
+
+
+
+
